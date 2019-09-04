@@ -116,3 +116,5 @@ if(RA==TRUE){
 PPTCreate(GeneName = "CTCS", RA=FALSE)
 PPTCreate(GeneName = list("SIK1", 'SIK2', "SIK3", "PFKFB3", "CTCS", "ITK", "TMEM173", "FAP", 
                           "RASGRP1", "IRAK1", "IRAK4", "VAV1"), RA=FALSE)   
+
+PPTCreate(GeneName = list("VAV1","VAV2","VAV3", "RASGRP1","RASGRP2","RASGRP3","RASGRP4"), RA=FALSE) 

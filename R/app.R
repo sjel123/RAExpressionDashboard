@@ -19,7 +19,7 @@ source("utils.R")
 # res <- Gtex[,1:2]
 # res <- res[(!duplicated(res$Description)),]
 # colnames(res) <- c("Gene_Name", "Gene_id")
-load("res1.rData")
+load("/app/Shiny/RAExpressionDashboard/Data/res1.rData")
 
 js <- HTML("
 $(document).on('shiny:connected', function(event) {
