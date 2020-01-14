@@ -137,10 +137,10 @@ ImmNavPlot <-function( Symbol = "IL6"){
    #4 Plot Data
   #Determine highest expressed Row
   #Conver factors to numeric
-  indx <- sapply(Query_m, is.factor)
-  Query_m[indx] <- lapply(Query_m[indx], function(x) as.numeric(as.character(x)))
+  #indx <- sapply(Query_m, is.factor)
+  #Query_m[indx] <- lapply(Query_m[indx], function(x) as.numeric(as.character(x)))
   
-  MaxExp <- apply(Query_m[indx],2,max) 
+  MaxExp <- apply(Query_m[,index],2,max) 
   index3 <- which(MaxExp==max(MaxExp))
   index4 <-(2:(ncol(Query_m)-2))[index3]
   index5 <- which (colnames(Query_m)%in% c("Row.names","row_names","Cell"))
