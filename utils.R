@@ -122,7 +122,8 @@ ImmNavPlot <-function( Symbol = "IL6"){
   Query_t=as.data.frame(t(Query[,-1]))
   names(Query_t) <- Query[,1]
   Query <- Query_t
-  
+    IndexRow <- grep("row", rownames(Query),invert = T)
+    Query <-Query[IndexRow,]
   #3 QueryMeta data
   Cells <- dbGetQuery(con, paste0("SELECT * FROM Meta"))
   Cells$Sample <- make.names(Cells$Sample)
@@ -131,15 +132,22 @@ ImmNavPlot <-function( Symbol = "IL6"){
   index <- which (names(Query_m)=="Symbol")
   ifelse (length(index)==1, Query_m[,index] <- Query_m[,index],
           Query_m[,index]<- apply(Query_m[,index],2,as.numeric))
-  #4 Plot Data
+ 
+  
+   #4 Plot Data
   #Determine highest expressed Row
-  MaxExp <- apply(as.data.frame(as.numeric(as.character(Query_m[,2:(ncol(Query_m)-2)]))),2,sum, na.rm=TRUE)
+  #Conver factors to numeric
+  indx <- sapply(Query_m, is.factor)
+  Query_m[indx] <- lapply(Query_m[indx], function(x) as.numeric(as.character(x)))
+  
+  MaxExp <- apply(Query_m[indx],2,max) 
   index3 <- which(MaxExp==max(MaxExp))
   index4 <-(2:(ncol(Query_m)-2))[index3]
   index5 <- which (colnames(Query_m)%in% c("Row.names","row_names","Cell"))
   Query_m <- Query_m[,c(index5, index4)]
-  
-  p <- ggplot(Query_m, aes(x=Cell, y=(as.numeric(as.character(Symbol)))))+ geom_boxplot(outlier.shape = NA)+
+    colnames(Query_m)[4] <- "value"
+    Query_m$value <- as.numeric(as.character((Query_m$value)))
+  p <- ggplot(Query_m, aes(x=Cell, y=value))+ geom_boxplot(outlier.shape = NA)+
     geom_jitter(width=0.2)+ggtitle(Symbol) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1, size = textsize))
   
