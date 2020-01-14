@@ -16,6 +16,7 @@ library(ggpubr)
 library(htmlwidgets)
 
 source("utils.R")
+source("HPAplots.R")
 # res <- Gtex[,1:2]
 # res <- res[(!duplicated(res$Description)),]
 # colnames(res) <- c("Gene_Name", "Gene_id")
@@ -118,9 +119,9 @@ ui <- dashboardPage(
                           fluidRow(
                             box(DT::dataTableOutput('x1'),  hr(),fluid=FALSE, width = 12)
                           ),#End Fluid Row
-                          fluidRow(column("",
-                                          tableOutput("dataset"), width = 12,
-                                          align = "center")),
+                          # fluidRow(column("",
+                          #                 tableOutput("dataset"), width = 12,
+                          #                 align = "center")),
                           # Button
                           downloadButton("downloadData", "Download Rainbow Table"),
                           fluidRow(
@@ -178,7 +179,9 @@ server <- function(input, output) {
                                                     "GTEX" = "gtex"),stselected=FALSE),  
      'Immune Cell Expression' = structure(list("ImmuneNavigator" = "IN",
                                                "DICE" ="dice",
-                                               "ImmuneProt"="ImmuneProt"),stselected=FALSE),
+                                               "ImmuneProt"="ImmuneProt",
+                                               "HPA"="HPA"),
+                                                stselected=FALSE),
      'Fibroblast Expression'     =  structure(list('AMP'='AMP', 
                                                    "AMP2"= "AMP2",
                                                    "AMPSC" ="AMPSC",
@@ -259,6 +262,19 @@ server <- function(input, output) {
         box(title = "Immune Cell Proteomics",status = "primary", solidHeader = TRUE,
             plotOutput("plot4a"), width=12)
       },
+      if("HPA" %in% dataset()){
+        box(title = "HPA Immune Cell Expression",status = "primary", solidHeader = TRUE,
+            plotOutput("plotHPA3"),width=12)
+      },
+      if("HPA" %in% dataset()){
+        box(title = "HPA SchmiedelBloodPlot Immune Cell Expression",status = "primary", solidHeader = TRUE,
+            plotOutput("plotHPA1"),width=12)
+      },
+      if("HPA" %in% dataset()){
+        box(title = "Monaco HPA Immune Cell Expression",status = "primary", solidHeader = TRUE,
+            plotOutput("plotHPA2"),width=12)
+      },
+
       if("AMP" %in% dataset()){
         box(title = "AMPLowInput",status = "primary", solidHeader = TRUE,
             plotOutput("plot5"), width=12)
@@ -448,6 +464,16 @@ server <- function(input, output) {
   output$plot17 <- renderPlot({
     PlotGSE116899(gene=SW())
   }) 
+  output$plotHPA1 <- renderPlot({
+    SchmiedelBloodPlot(gene=SW())
+  }) 
+  output$plotHPA2 <- renderPlot({
+    MonacoBloodPlot(gene=SW())
+  }) 
+  output$plotHPA3 <- renderPlot({
+    HPABloodPlot(gene=SW())
+  }) 
+
 
   # # Downloadable csv of selected dataset ----
   # output$downloadData <- downloadHandlerdownloadHandler(

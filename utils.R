@@ -66,34 +66,41 @@ PlotFantonFunction <- function(gene="HAPLN3") {
   if(!exists("MeanCluster_Fantom_t")) {
     load("./Data/MembraneDataAll.RData")
   }
-  index <- grep(paste0(gene,"$"), Fantom$X) 
-  plotData <- data.frame(t(MeanCluster_Fantom_t[index,]))
-  plotData[] <- lapply(plotData, as.character)
-  colnames(plotData) <- (plotData[52,])
-  plotData$Cell <- row.names(plotData)
-  colnames(plotData) <- make.names(colnames(plotData))
-  plotData$Cell <- (row.names(plotData))
-  index2 <- grep("p1\\.|Cell", colnames(plotData))
-  plotData <- plotData[,index2]
-  if(is.null(nrow(plotData))){plotData=data.frame(Value=rep(0,length(plotData)), Cell=plotData)}
-  if(!is.null(colnames(plotData))){
-    colnames(plotData) <- gsub("p1\\.", "", colnames(plotData))
-    index3 <- grep(paste0("^", gene, "$"), colnames(plotData) )
-    colnames(plotData)[index3] <- "Value"
-  }
- 
-  a <- ggplot(plotData[-52,], aes(x=Cell, y=as.numeric(Value), fill = Cell))+geom_col()+
-    theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = textsize))
-  
-  b <- ggplot(plotData[-52,],aes(x=reorder(Cell,-as.numeric(Value)),y=as.numeric(Value),label = Cell,fill = Cell))+
-    geom_bar(stat = 'identity')+
-    labs(x='', y = 'Expression', title=paste0("Fantom5 Expression Data ", gene))+
-    theme_bw()+
-    theme(legend.position="none")+
-    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
-  return(list(a,b))      
+  df <- data.frame()
+  a <- ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  b <- ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+  if (length(grep(gene, Fantom$X)>0)){
+      index <- grepl(paste0(gene,"$"), Fantom$X) 
+      plotData <- data.frame(t(MeanCluster_Fantom_t[index,]))
+      plotData[] <- lapply(plotData, as.character)
+      colnames(plotData) <- (plotData[52,])
+      plotData$Cell <- row.names(plotData)
+      colnames(plotData) <- make.names(colnames(plotData))
+      plotData$Cell <- (row.names(plotData))
+      index2 <- grep("p1\\.|Cell", colnames(plotData))
+      plotData <- plotData[,index2]
+      if(is.null(nrow(plotData))){plotData=data.frame(Value=rep(0,length(plotData)), Cell=plotData)}
+      if(!is.null(colnames(plotData))){
+        colnames(plotData) <- gsub("p1\\.", "", colnames(plotData))
+        index3 <- grep(paste0("^", gene, "$"), colnames(plotData) )
+          index3 <- ifelse(identical(index3, integer(0)),1, index3)
+        colnames(plotData)[index3] <- "Value"
+      }
+     
+      a <- ggplot(plotData[-52,], aes(x=Cell, y=as.numeric(Value), fill = Cell))+geom_col()+
+        theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = textsize))
+      
+      b <- ggplot(plotData[-52,],aes(x=reorder(Cell,-as.numeric(Value)),y=as.numeric(Value),label = Cell,fill = Cell))+
+        geom_bar(stat = 'identity')+
+        labs(x='', y = 'Expression', title=paste0("Fantom5 Expression Data ", gene))+
+        theme_bw()+
+        theme(legend.position="none")+
+        theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+        theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  }#end if
+      
+       return(list(a,b))      
 }
 
 #Load Data.  run only once when the server.R is called
@@ -159,6 +166,7 @@ plotDataFunction <- function(Gene=Gene, index=1){
   Data <- data.frame(); k=0; Data1=data.frame()
   Index <- grep(paste0("^", Gene, ";"), M2$Additional_annotations)
   if(identical(Index, integer(0))){Index=1}
+  
   #Index <- which(M2$Additional_annotations==Gene)
   #print(M2$Additional_annotations[Index])
   #Index <- Gene
@@ -175,8 +183,11 @@ plotDataFunction <- function(Gene=Gene, index=1){
   Data1 <- data.frame(as.matrix(Data1)[,1:2])
   colnames(Data1) <- c("Cell", "Value")
   
-  p <- ggplot(Data1, aes(x=Cell, y=as.numeric(as.character(Value))))+geom_boxplot(outlier.shape = NA)+geom_jitter(width=0.2)
-  p <- p + ggtitle(M2$Additional_annotations[Index])+theme(axis.text.x = element_text(angle = 45, hjust = 1, size = textsize))
+  if(Index==1 & Gene != "TSPAN6"){Data1$Value=rep(0,nrow(Data1))}
+ 
+  
+  p <- ggplot(Data1, aes(x=Cell, y=as.numeric(as.character(Value))))+geom_boxplot(outlier.shape = NA)+geom_jitter(width=0.2, height = 0)
+  p <- p + ggtitle(Gene)+theme(axis.text.x = element_text(angle = 45, hjust = 1, size = textsize))
   p <- p + ylab("Expression Value")
   return(p)
 }  
@@ -440,7 +451,7 @@ PlotFIBData <- function(gene="CDH11"){
   
   a <-  ggplot(PlotData_t,aes(x=group,y=log(Value),fill = tissue.ch1)) +
     geom_boxplot(outlier.shape = NA)+geom_jitter( position = position_jitterdodge(), size=3)+
-    labs(x='', y = 'Expression', title=paste0("Single Cell Fibroblast Expression Data ",gene))+
+    labs(x='', y = 'Expression', title=paste0("Fibroblast Cell Expression Data ",gene))+
     theme_bw()+
     theme(legend.position="none")+
     theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
@@ -484,6 +495,7 @@ PlotPeak <- function(gene="CDH11"){
 ##Publci Synovail
 PlotSynovial <- function(gene="CDH11"){
   require(ggplot2)
+  require(ggpubr)
   if(!exists("Publicgset")) {
     load("~/projects/SynoviumPublic/RNASeqQC-SJ/Data/PublicSynovial.RData")
     Publicgset <- gset
@@ -704,30 +716,36 @@ PlotSDY1299 <- function(gene="CDH11"){
     SDY1299gset <- gset
     rm(gset,gsetMax)  
   }
-  PlotData <- exprs(SDY1299gset)[fData(SDY1299gset)$gene_name==gene,]
-  #PlotData <- PlotData[!is.na(row.names(PlotData)),]
-  PlotData_t <-data.frame(Value=PlotData, pData(SDY1299gset))
-  #PlotData_t$Group = PlotData_t$condition
-  #PlotData_t <- PlotData_t[!PlotData_t$Group %in% c("Biopsy02", "OtherBiopsy01", "OtherBiopsy02", "NANA"),]
-  #PlotData_t$Group <- factor(PlotData_t$Group, levels=c("MTXBiopsy01",  "MTXBiopsy02", "iTNFBiopsy01", "iTNFBiopsy02", 
-  #                                                      "BioBiopsy01", "BioBiopsy02", "BioBiopsy03" ))
+  df <- data.frame()
+  a <-  ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
   
-  my_comparisons <- list( c("OA", "RA") )
-  maxval <- max(PlotData_t$Value)
-  a <-  ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
-    geom_boxplot(outlier.shape = NA)+
-    geom_point(position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
-                                             dodge.width = 0.75, seed = NA))+
-    #geom_point(position=position_dodge(width=.75))+
-    labs(x='', y = 'Expression', title=paste0("SDY1299 Synovial Expression Data ",gene))+
-    theme_bw()+
-    #theme(legend.position="none")+
-    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
-  # Visualize: Specify the comparisons you want
-  a <- a + stat_compare_means(comparisons = my_comparisons)+ # Add pairwise comparisons p-value
-    stat_compare_means(label.y = maxval+1)     # Add global p-value
-  
+  if (gene %in% fData(SDY1299gset)$gene_name){
+      PlotData <- exprs(SDY1299gset)[fData(SDY1299gset)$gene_name==gene,]
+        
+      #PlotData <- PlotData[!is.na(row.names(PlotData)),]
+      PlotData_t <-data.frame(Value=PlotData, pData(SDY1299gset))
+      #PlotData_t$Group = PlotData_t$condition
+      #PlotData_t <- PlotData_t[!PlotData_t$Group %in% c("Biopsy02", "OtherBiopsy01", "OtherBiopsy02", "NANA"),]
+      #PlotData_t$Group <- factor(PlotData_t$Group, levels=c("MTXBiopsy01",  "MTXBiopsy02", "iTNFBiopsy01", "iTNFBiopsy02", 
+      #                                                      "BioBiopsy01", "BioBiopsy02", "BioBiopsy03" ))
+      
+      my_comparisons <- list( c("OA", "RA") )
+      maxval <- max(PlotData_t$Value)
+      a <-  ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
+        geom_boxplot(outlier.shape = NA)+
+        geom_point(position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
+                                                 dodge.width = 0.75, seed = NA))+
+        #geom_point(position=position_dodge(width=.75))+
+        labs(x='', y = 'Expression', title=paste0("SDY1299 Synovial Expression Data ",gene))+
+        theme_bw()+
+        #theme(legend.position="none")+
+        theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+        theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+      # Visualize: Specify the comparisons you want
+      a <- a + stat_compare_means(comparisons = my_comparisons)+ # Add pairwise comparisons p-value
+        stat_compare_means(label.y = maxval+1)     # Add global p-value
+  }#end if  
+      
   return(a)
   
 }
