@@ -184,6 +184,7 @@ server <- function(input, output) {
                                                 stselected=FALSE),
      'Fibroblast Expression'     =  structure(list('AMP'='AMP', 
                                                    "AMP2"= "AMP2",
+                                                   "AMP.P2"= "AMP.P2", 
                                                    "AMPSC" ="AMPSC",
                                                    "BrennerFib" = "BrennerFib",
                                                    "BrennerFibMicro" = "BrennerFibMicro",
@@ -194,6 +195,7 @@ server <- function(input, output) {
      'Disease Expression'     =  structure(list('AMP'='AMP', 
                                                 "AMP2"= "AMP2",
                                                 "AMPSC" ="AMPSC",
+                                                "AMP.P2"= "AMP.P2",
                                                 "PEAC" = "peac",
                                                 "DiseaseProgression" = "pub",
                                                  "GSE55235"= "GSE55235",
@@ -286,6 +288,11 @@ server <- function(input, output) {
       if("AMPSC" %in% dataset()){
         box(title = "AMPSingle Cell Mean",status = "primary", solidHeader = TRUE,
             plotOutput("plotAMPSC"), width=12)
+      },
+      
+      if("AMP.P2" %in% dataset()){
+        box(title = "AMP Phase2 Bulk",status = "primary", solidHeader = TRUE,
+            plotOutput("PlotAMPP2"), width=12)
       },
   
       if("BrennerFib" %in% dataset()){
@@ -415,6 +422,10 @@ server <- function(input, output) {
     PlotAMPSingleCell(gene=SW())
   })
 
+  #Lowinput AMP Phase2
+  output$PlotAMPP2 <- renderPlot({
+    PlotLowInputAMPII(gene=SW())
+  })
   output$plot52 <- renderPlot({
     PlotBrennerFibro (gene=SW())
   })

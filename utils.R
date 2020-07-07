@@ -4,6 +4,7 @@ library(ggplot2)
 library(DBI)
 library(Biobase)
 library(ggpubr)
+library(cowplot)
 
 textsize=16
 #load("./Data/MembraneDataAll.RData")
@@ -241,6 +242,63 @@ PlotLowInputAMP <- function(gene="CDH11"){
   return(a)
 } 
 
+#AMP Low Input Phase II
+PlotLowInputAMPII <- function(gene="CDH11"){
+  if(!exists("lowinputAMPPhaseII")) {
+    load("~/Projects/AMP_Phase2_RA/Data/AMPPhase2.RData")
+    lowinputAMPPhaseII <- gset
+    rm(gset)  
+  }
+  
+  PlotData <- exprs(lowinputAMPPhaseII)[fData(lowinputAMPPhaseII)$gene_name==gene,]
+  PlotData_t <-data.frame(Value=PlotData, pData(lowinputAMPPhaseII))
+  a <-  ggplot(PlotData_t,aes(x=interaction(Group, Diagnosis),y=Value,label = Group,fill = Group)) + 
+    #geom_bar(stat = "summary", fun.y = "median", width=0.8)+
+    geom_boxplot(outlier.shape = NA)+ geom_jitter(width=0.2)+
+    labs(x='', y = 'Expression')+
+    theme_bw()+
+    theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  a
+  PlotData_t$Cohort <- gsub(" APPROVED", "", PlotData_t$Cohort)
+  #PlotData_t$Cohort <- gsub("", "OA", PlotData_t$Cohort)
+   Index <- grep("Group", PlotData_t$Cohort, invert = T)
+   PlotData_t$Cohort[Index] <- "OA"
+  b <-  ggplot(PlotData_t,aes(x=Group,y=Value,fill = Cohort)) + 
+    #geom_bar(stat = "summary", fun.y = "median", width=0.8)+
+    geom_boxplot(outlier.shape = NA)+ geom_point(aes(fill=Cohort),shape=21,size=3,color="black",stroke=1,position = position_jitterdodge(jitter.width=0.1))+
+    labs(x='', y = 'Expression')+
+    theme_bw()+
+   # theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  b
+
+  # now add the title
+  title <- ggdraw() + 
+    draw_label(
+      paste0("AMP Phase II Low Input Expression Data ",gene),
+      fontface = 'bold',
+      x = 0,
+      hjust = 0
+    ) +
+    theme(
+      # add margin on the left of the drawing canvas,
+      # so title is aligned with left edge of first plot
+      plot.margin = margin(0, 0, 0, 7)
+    )
+  Output <- plot_grid(
+    title, plot_grid(a,b, align = 'h', rel_widths =   c(.7, 1)),
+    ncol = 1,
+    # rel_heights values control vertical title margins
+    rel_heights = c(0.1, 1)
+  )
+  
+
+  return(Output)
+} 
+
 #AMP Low Input
 PlotAMP <- function(gene="CDH11"){
   if(!exists("LeucoRichGSET")) {
@@ -249,7 +307,7 @@ PlotAMP <- function(gene="CDH11"){
     fData(LeucoRichGSET)$gene_name <- fData(LeucoRichGSET)$gene.name
   }
   gene <- as.character(gene)
-  print(gene)
+  #print(gene)
   PlotData <- exprs(LeucoRichGSET)[fData(LeucoRichGSET)$gene_name==gene,]
   PlotData_t <-data.frame(Value=PlotData, pData(LeucoRichGSET))
     PlotData_t <- PlotData_t[,c(1,5,91)]
@@ -277,8 +335,11 @@ PlotAMPSingleCell <- function(gene="CDH11"){
   PlotData <- as.data.frame(t(MeanCluster_t[row.names(MeanCluster_t)==gene,]))
     PlotData$Cell <- row.names(PlotData)
     names(PlotData)[1] <- "Value"
+    PlotData$Name <- c("NaiveB", "MemB", "ABC", "PlasmaBlasts", "CD34+Sub", "HLA+Sub", "DKK3+Sub", "CD55+Lining",
+                       "IL1B+ pro-infl", "NUPR1+", "C1QA+", "IFN-activated", "CCR7+ CD4+", "FOXP3+ Tregs",
+                       "PD-1+ Tph/Tfh", "GZMK+ CD8+", "GNLY+ GZMB+ CTLs", "GZMK+/GZMB+")
 
-  a <-ggplot(PlotData,aes(x=Cell,y=Value,fill = Cell)) +
+  a <-ggplot(PlotData,aes(x=Cell,y=Value,fill = Cell, label=Name)) +
     geom_bar(stat = "identity")+
     labs(x='', y = 'Expression', title=paste0("AMP Single Cell Expression Data ",gene))+
     theme_bw()+
@@ -286,6 +347,8 @@ PlotAMPSingleCell <- function(gene="CDH11"){
     theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
     # Add global p-value
+  #Add text annotation
+  a <- a + geom_text(y=0, angle = 90, vjust = 1, hjust = 0)
   return(a)
 } 
 
@@ -510,6 +573,7 @@ PlotSynovial <- function(gene="CDH11"){
     rm(gset, gsetMax, cont.wt1)
   }
   PlotData <- exprs(Publicgset)[fData(Publicgset)$gene_name==gene,]
+ # if(dim(PlotData)[1]==0){PlotData=data.frame(Value=rep(0,ncol(PlotData)))}
   PlotData_t <-data.frame(Value=PlotData, pData(Publicgset))
   PlotData_t$Group <- factor(PlotData_t$Group, levels=c( "Normal_Base", "OA", "Arthralgia_Base",  "UnDiffArth", "RA_Early_Base", "RA_Early_6Mont",  "RA_Est"))
  
