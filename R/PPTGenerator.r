@@ -357,4 +357,5 @@ PPTCreate( list("BTK", "BMX", "ITK", "TXK", "TEC"), Index = TRUE, RA = TRUE)
              
              PPTCreate( list("USP18"), Index = TRUE, RA = TRUE) 
              
+             PPTCreate( list("LTB4R2"), Index = TRUE, RA = TRUE)  
              

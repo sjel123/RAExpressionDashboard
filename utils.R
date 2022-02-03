@@ -53,33 +53,53 @@ PlotGTEXFunction <- function(gene="HAPLN3") {
   
   #Select gene of interest
   index <- grep(paste0("^", gene, "$"), Gtex$Description)
-  #Select data for plotting
   #If more than 1 row has the same gene name I select the first one
   # Should be updated to select the one with the highest expression
-  plotData <-data.frame(t(data.frame(Gtex[index[1],3:55]))) # Removed data on tissue specificity (Columns 56-58)
-  plotData$Tissue <- row.names(plotData)
-    colnames(plotData) <- c("Value", "Tissue")
-  
-  a <- ggplot(plotData[,], aes(x=Tissue, y=as.numeric(Value), fill = Tissue))+
-    geom_col()+
-    theme(legend.position="none")+ 
-    ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = textsize))
-  
-  #Clean up labels
-    plotData$Tissue <- gsub("Cells...", "", plotData$Tissue)
-      plotData$Tissue <- gsub("...", "", plotData$Tissue, fixed = T)
-      plotData$Tissue2 <- strtrim(plotData$Tissue, 20)
+    plotData <-data.frame(t(data.frame(Gtex[index[1],3:55]))) # Removed data on tissue specificity (Columns 56-58)
+    plotData$Tissue <- row.names(plotData)
+      colnames(plotData) <- c("Value", "Tissue")
+  if (identical(index, integer(0))){
+    a=ggplot(plotData, aes(x=Tissue, y=Value, label="Gene Not Found")) + geom_col()+
+      theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))+
+      annotate(geom = "text", x = 15, y = 0, label = "Gene Not Found", color = "red",
+               angle = 0)
+    b=ggplot(plotData, aes(x=Tissue, y=Value, label="Gene Not Found")) + geom_col()+
+      theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))+
+      annotate(geom = "text", x = 15, y = 0, label = "Gene Not Found", color = "red",
+               angle = 0)
+  }
+  if (!identical(index, integer(0))){
+      #Select data for plotting
+      #If more than 1 row has the same gene name I select the first one
+      # Should be updated to select the one with the highest expression
+      plotData <-data.frame(t(data.frame(Gtex[index[1],3:55]))) # Removed data on tissue specificity (Columns 56-58)
+      plotData$Tissue <- row.names(plotData)
+        colnames(plotData) <- c("Value", "Tissue")
       
-  #Plot data sorted from highest expression to lowest    
-  b <- ggplot(plotData[-52,],aes(x=reorder(Tissue2,-as.numeric(Value)),y=as.numeric(Value),label = Tissue,fill = Tissue))+
-    geom_bar(stat = 'identity')+
-    labs(x='', y = 'Expression') + ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
-    theme_bw()+
-    theme(legend.position="none")+
-    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
-    theme(axis.text.x = element_text(angle = 85, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
-  return(list(a,b))      
+      a <- ggplot(plotData[,], aes(x=Tissue, y=as.numeric(Value), fill = Tissue))+
+        geom_col()+
+        theme(legend.position="none")+ 
+        ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = textsize))
+      
+      #Clean up labels
+        plotData$Tissue <- gsub("Cells...", "", plotData$Tissue)
+          plotData$Tissue <- gsub("...", "", plotData$Tissue, fixed = T)
+          plotData$Tissue2 <- strtrim(plotData$Tissue, 20)
+          
+      #Plot data sorted from highest expression to lowest    
+      b <- ggplot(plotData[-52,],aes(x=reorder(Tissue2,-as.numeric(Value)),y=as.numeric(Value),label = Tissue,fill = Tissue))+
+        geom_bar(stat = 'identity')+
+        labs(x='', y = 'Expression') + ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
+        theme_bw()+
+        theme(legend.position="none")+
+        theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+        theme(axis.text.x = element_text(angle = 85, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+ 
+  }
+      return(list(a,b))
 }      
 
 PlotFantonFunction_old <- function(gene="HAPLN3") { 
@@ -127,30 +147,53 @@ PlotFantonFunction <- function(gene="HAPLN3") {
   if(!exists("MeanCluster_Fantom_t")) {
     load("/app/Shiny/RAExpressionDashboard/Data/MembraneDataAll.RData")
   }
-  index <- grep(paste0("^", gene,"$"), MeanCluster_Fantom_t$Symbol) 
+  index <- grep(paste0("^", gene,"$"), MeanCluster_Fantom_t$Symbol)
+  
   plotData <- data.frame(t(MeanCluster_Fantom_t[index,]))
-  plotData[] <- lapply(plotData, as.character)
-  colnames(plotData) <- (plotData[53,])
-  plotData$Cell <- row.names(plotData)
-  colnames(plotData) <- make.names(colnames(plotData))
-  # plotData$Cell <- (row.names(plotData))
-  #Select column with max expression value
-    Index <- which.max(plotData["Max",-(length(plotData))])
-    plotData <- data.frame(Value = plotData[,Index], Cell=plotData$Cell)
-  colnames(plotData)[1] <- "Value"
-  
-  a <- ggplot(plotData[1:51,], aes(x=Cell, y=as.numeric(Value), fill = Cell))+geom_col()+
+    plotData[] <- lapply(plotData, as.character)
+    colnames(plotData) <- (plotData[53,])
+    plotData$Cell <- row.names(plotData)
+    colnames(plotData) <- make.names(colnames(plotData))
+
+      #Select column with max expression value
+      Index <- which.max(plotData["Max",-(length(plotData))])
+        if (identical(Index, integer(0))){
+          plotData <- data.frame(Value = 0, Cell=plotData$Cell)
+        }
+        if (!identical(Index, integer(0))){
+            plotData <- data.frame(Value = plotData[,Index], Cell=plotData$Cell)
+            colnames(plotData)[1] <- "Value"
+        }
+      
+      
+  if (identical(index, integer(0))){
+    a=ggplot(plotData, aes(x=Cell, y=Value, label="Gene Not Found")) + geom_col()+
     theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))
-  
-  b <- ggplot(plotData[1:51,],aes(x=reorder(Cell,-as.numeric(Value)),y=as.numeric(Value),label = Cell,fill = Cell))+
-    geom_bar(stat = 'identity')+
-    labs(x='', y = 'Expression', title=paste0("Fantom5 Expression Data ", gene))+
-    theme_bw()+
-    theme(legend.position="none")+
-    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
-  return(list(a,b))      
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))+
+      annotate(geom = "text", x = 15, y = 0, label = "Gene Not Found", color = "red",
+               angle = 0)
+    b=ggplot(plotData, aes(x=Cell, y=Value, label="Gene Not Found")) + geom_col()+
+      theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))+
+      annotate(geom = "text", x = 15, y = 0, label = "Gene Not Found", color = "red",
+               angle = 0)
+  }
+  if (!identical(index, integer(0))){
+ 
+      
+        a <- ggplot(plotData[1:51,], aes(x=Cell, y=as.numeric(Value), fill = Cell))+geom_col()+
+          theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+          theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))
+        
+        b <- ggplot(plotData[1:51,],aes(x=reorder(Cell,-as.numeric(Value)),y=as.numeric(Value),label = Cell,fill = Cell))+
+          geom_bar(stat = 'identity')+
+          labs(x='', y = 'Expression', title=paste0("Fantom5 Expression Data ", gene))+
+          theme_bw()+
+          theme(legend.position="none")+
+          theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+          theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+      }
+      return(list(a,b))      
 }
 
 #Load Data.  run only once when the server.R is called
@@ -632,7 +675,7 @@ PlotSynovial <- function(gene="CDH11"){
     rm(gset, gsetMax, cont.wt1)
   }
   PlotData <- exprs(Publicgset)[fData(Publicgset)$gene_name==gene,]
- # if(dim(PlotData)[1]==0){PlotData=data.frame(Value=rep(0,ncol(PlotData)))}
+  if(length(PlotData)==0){PlotData=data.frame(Value=rep(0,ncol(PlotData)))}
   PlotData_t <-data.frame(Value=PlotData, pData(Publicgset))
   PlotData_t$Group <- factor(PlotData_t$Group, levels=c( "Normal_Base", "OA", "Arthralgia_Base",  "UnDiffArth", "RA_Early_Base", "RA_Early_6Mont",  "RA_Est"))
  
