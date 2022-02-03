@@ -1,38 +1,38 @@
-# Version info: R 3.2.3, Biobase 2.30.0, GEOquery 2.40.0, limma 3.26.8
-# R scripts generated  Fri Aug 9 13:11:56 EDT 2019
-
-
-Server: www.ncbi.nlm.nih.gov
-Query: acc=GSE63626&platform=GPL570&type=txt&groups=All&colors=dfeaf4&selection=000000000000000000000000000000000000000000000000000000000000000&padj=fdr&logtransform=auto&columns=ID&columns=adj.P.Val&columns=P.Value&columns=F&columns=Gene+symbol&columns=Gene+title&num=250&annot=ncbi
-
-# Unable to generate script analyzing differential expression.
-#      Invalid input: at least two groups of samples should be selected.
-
-################################################################
-#   Boxplot for selected GEO samples
-library(Biobase)
-library(GEOquery)
-
-# load series and platform data from GEO
-
-gset <- getGEO("GSE63626", GSEMatrix =TRUE, getGPL=FALSE)
-if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
-
-library(hgu133plus2.db)
-
-select(hgu133plus2.db, c("1007_s_at","1053_at"), c("SYMBOL", "GENENAME")) ##  This is just a trying example
-PROBES<- as.character(row.names(exprs(gset)))
-OUT <- select(hgu133plus2.db,keys= PROBES, columns=c("SYMBOL", "GENENAME"))
-
-table(table(OUT$PROBEID))
-OUT <- OUT[!(duplicated(OUT$PROBEID)),]
-
-table(row.names(exprs(gset))==OUT$PROBEID)
-fData(gset) <- OUT
-
- fibrgset <- gset
-save(fibrgset, file="Data/Fibroblastgset.RData")
+# # Version info: R 3.2.3, Biobase 2.30.0, GEOquery 2.40.0, limma 3.26.8
+# # R scripts generated  Fri Aug 9 13:11:56 EDT 2019
+# 
+# 
+# Server: www.ncbi.nlm.nih.gov
+# Query: acc=GSE63626&platform=GPL570&type=txt&groups=All&colors=dfeaf4&selection=000000000000000000000000000000000000000000000000000000000000000&padj=fdr&logtransform=auto&columns=ID&columns=adj.P.Val&columns=P.Value&columns=F&columns=Gene+symbol&columns=Gene+title&num=250&annot=ncbi
+# 
+# # Unable to generate script analyzing differential expression.
+# #      Invalid input: at least two groups of samples should be selected.
+# 
+# ################################################################
+# #   Boxplot for selected GEO samples
+# library(Biobase)
+# library(GEOquery)
+# 
+# # load series and platform data from GEO
+# 
+# gset <- getGEO("GSE63626", GSEMatrix =TRUE, getGPL=FALSE)
+# if (length(gset) > 1) idx <- grep("GPL570", attr(gset, "names")) else idx <- 1
+# gset <- gset[[idx]]
+# 
+# library(hgu133plus2.db)
+# 
+# select(hgu133plus2.db, c("1007_s_at","1053_at"), c("SYMBOL", "GENENAME")) ##  This is just a trying example
+# PROBES<- as.character(row.names(exprs(gset)))
+# OUT <- select(hgu133plus2.db,keys= PROBES, columns=c("SYMBOL", "GENENAME"))
+# 
+# table(table(OUT$PROBEID))
+# OUT <- OUT[!(duplicated(OUT$PROBEID)),]
+# 
+# table(row.names(exprs(gset))==OUT$PROBEID)
+# fData(gset) <- OUT
+# 
+#  fibrgset <- gset
+# save(fibrgset, file="Data/Fibroblastgset.RData")
 
 
 PlotFIBData <- function(gene="CDH11"){

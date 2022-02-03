@@ -1,45 +1,48 @@
 
 
-SSRA <- read.table("Data/GSE109449_singlecell_rnaseq_gene_tpm.tsv", sep="\t", header=T)
-annotation <- read.table("Data/GSE109449_singlecell_rnaseq_metadata.tsv", sep="\t", header=T)
+# SSRA <- read.table("Data/GSE109449_singlecell_rnaseq_gene_tpm.tsv", sep="\t", header=T)
+# annotation <- read.table("Data/GSE109449_singlecell_rnaseq_metadata.tsv", sep="\t", header=T)
+# 
+# annotation$sample_name==colnames(SRA.m)[3:386]
+# 
 
-annotation$sample_name==colnames(SRA.m)[3:386]
 
 
-
-
-library("org.Hs.eg.db") # remember to install it if you don't have it already
-symbols <- mapIds(org.Hs.eg.db, keys = as.character(SSRA$ID_REF), keytype = "ENSEMBL", column="SYMBOL")
-SYMbols <- data.frame(gene.name = symbols)
-
-SSRA.m <- merge(SSRA, SYMbols, by.x="ID_REF", by.y=0, all.x=0)
-
-SRA.m <- SSRA.m[,c(1,386, 2:385)]
+# library("org.Hs.eg.db") # remember to install it if you don't have it already
+# symbols <- mapIds(org.Hs.eg.db, keys = as.character(SSRA$ID_REF), keytype = "ENSEMBL", column="SYMBOL")
+# SYMbols <- data.frame(gene.name = symbols)
+# 
+# SSRA.m <- merge(SSRA, SYMbols, by.x="ID_REF", by.y=0, all.x=0)
+# 
+# SRA.m <- SSRA.m[,c(1,386, 2:385)]
 
 
 ##################
 #Create Expression set
-##################
-SSRA <- new("ExpressionSet", exprs = ((as.matrix(SRA.m [,3:ncol(SRA.m)]))))
-fData(SSRA) <- SRA.m[,1:2]
-#Add max value per gene
-fData(SSRA)$maxExpr <- apply(exprs(SSRA), 1, max)
-pData(SSRA) <- data.frame(annotation)
+# ##################
+# SSRA <- new("ExpressionSet", exprs = ((as.matrix(SRA.m [,3:ncol(SRA.m)]))))
+# fData(SSRA) <- SRA.m[,1:2]
+# #Add max value per gene
+# fData(SSRA)$maxExpr <- apply(exprs(SSRA), 1, max)
+# pData(SSRA) <- data.frame(annotation)
 
 
 PlotSSRA <- function(gene="CDH11"){
+  require(ggplot2)
   if(!exists("SSRA")) {
     load("~/projects/CDH11_membrance/CDH11/Data/BrennerFib.RData")
-
-    fData(SSRA)$gene_name <- fData(SSRA)$gene.name
+    SSRA <- gset_RNAseq
+    fData(SSRA)$gene_name <- fData(SSRA)$external_gene_name
+  
   }
   gene <- as.character(gene)
 
   PlotData <- exprs(SSRA)[which(fData(SSRA)$gene_name==gene),]
+    
   PlotData_t <-data.frame(Value=PlotData, pData(SSRA))
-     PlotData_t$CD34 <- PlotData_t$CD34_protein
-     PlotData_t$THY1 <- PlotData_t$THY1_protein
-     PlotData_t$CD11 <- PlotData_t$CDH11_protein
+     #PlotData_t$CD34 <- PlotData_t$CD34_protein
+     ##PlotData_t$THY1 <- PlotData_t$THY1_protein
+     #PlotData_t$CD11 <- PlotData_t$CDH11_protein
        PlotData_t$CD34 <-gsub("+", "CD34H",PlotData_t$CD34, fixed = T )
        PlotData_t$CD34 <-gsub("-", "CD34L",PlotData_t$CD34, fixed = T )
        PlotData_t$THY1 <-gsub("+", "THY1H",PlotData_t$THY1, fixed = T )
@@ -63,15 +66,15 @@ PlotSSRA <- function(gene="CDH11"){
   
   my_comparisons <- list( c("FAPH_PDPNH_THY1H" , "FAPH_PDPNH_THY1L"))
   maxval <- max(PlotData_t$Value)+1
-  a <-  ggplot(PlotData_t,aes(x=group,y=Value,fill = disease, shape=disease)) +
-    geom_boxplot(outlier.shape = NA)+geom_jitter( position = position_jitterdodge(), size=3)+
+  a <-  ggplot(PlotData_t,aes(x=group,y=Value)) +
+    geom_boxplot(outlier.shape = NA)+geom_jitter(  size=3)+
     labs(x='', y = 'Expression', title=paste0("Single Cell Fibroblast Expression Data ",gene))+
     theme_bw()+
     theme(legend.position="none")+
     theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
- a <- a + geom_boxplot(aes(x=FABGroup, y=Value), outlier.shape = NA)+ 
-   geom_jitter( aes(x=FABGroup, y=Value), position = position_jitterdodge(), size=3)+
+ a <- a + geom_boxplot(data= PlotData_t[PlotData_t$FABGroup %in% c("FAPH_PDPNH_THY1L" , "FAPH_PDPNH_THY1H"),],aes(x=FABGroup, y=Value),  outlier.shape = NA)+ 
+   geom_jitter(data= PlotData_t[PlotData_t$FABGroup %in% c("FAPH_PDPNH_THY1L" , "FAPH_PDPNH_THY1H"),],aes(x=FABGroup, y=Value),size=3)+
   geom_vline(xintercept = 7.5)
  a <- a + 
  guides(shape = FALSE)+
@@ -80,4 +83,4 @@ PlotSSRA <- function(gene="CDH11"){
 } 
 
 
-PlotSSRA(gene="FAP")
+#PlotSSRA(gene="FAP")

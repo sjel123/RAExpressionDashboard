@@ -41,31 +41,50 @@ get_tree_value <- function(tree_input_value,crop_selected){
 
 
 PlotGTEXFunction <- function(gene="HAPLN3") {  
-  if(!exists("Gtex")) {
-    load("./Data/MembraneDataAll.RData")
-  }
-  index <- grep(paste0("^", gene, "$"), Gtex$Description) 
-  plotData <-data.frame(t(data.frame(Gtex[index[1],3:55])))
-  plotData$Tissue <- row.names(plotData)
-  colnames(plotData) <- c("Value", "Tissue")
+ require(ggplot2)
+  #### Load Data
+  #### Data is a flat file downloaded from gtexportal.org
+  #### Verison GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_median_tpm.gct
+  ### Added some annotation from human protein atlas (Tissue specificity columns)
+  #
+   if(!exists("Gtex")) {
+    load("/app/Shiny/RAExpressionDashboard/Data/MembraneDataAll.RData")
+   }
   
-  a <- ggplot(plotData[,], aes(x=Tissue, y=as.numeric(Value), fill = Tissue))+geom_col()+
-    theme(legend.position="none")+ ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
+  #Select gene of interest
+  index <- grep(paste0("^", gene, "$"), Gtex$Description)
+  #Select data for plotting
+  #If more than 1 row has the same gene name I select the first one
+  # Should be updated to select the one with the highest expression
+  plotData <-data.frame(t(data.frame(Gtex[index[1],3:55]))) # Removed data on tissue specificity (Columns 56-58)
+  plotData$Tissue <- row.names(plotData)
+    colnames(plotData) <- c("Value", "Tissue")
+  
+  a <- ggplot(plotData[,], aes(x=Tissue, y=as.numeric(Value), fill = Tissue))+
+    geom_col()+
+    theme(legend.position="none")+ 
+    ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
     theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = textsize))
   
-  b <- ggplot(plotData[-52,],aes(x=reorder(Tissue,-as.numeric(Value)),y=as.numeric(Value),label = Tissue,fill = Tissue))+
+  #Clean up labels
+    plotData$Tissue <- gsub("Cells...", "", plotData$Tissue)
+      plotData$Tissue <- gsub("...", "", plotData$Tissue, fixed = T)
+      plotData$Tissue2 <- strtrim(plotData$Tissue, 20)
+      
+  #Plot data sorted from highest expression to lowest    
+  b <- ggplot(plotData[-52,],aes(x=reorder(Tissue2,-as.numeric(Value)),y=as.numeric(Value),label = Tissue,fill = Tissue))+
     geom_bar(stat = 'identity')+
     labs(x='', y = 'Expression') + ggtitle(label=paste0("GTEX Expression Data ", gene),subtitle = paste0(Gtex[index,56], Gtex[index,57]))+
     theme_bw()+
     theme(legend.position="none")+
     theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+    theme(axis.text.x = element_text(angle = 85, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
   return(list(a,b))      
 }      
 
-PlotFantonFunction <- function(gene="HAPLN3") { 
+PlotFantonFunction_old <- function(gene="HAPLN3") { 
   if(!exists("MeanCluster_Fantom_t")) {
-    load("./Data/MembraneDataAll.RData")
+    load("/app/Shiny/RAExpressionDashboard/Data/MembraneDataAll.RData")
   }
   df <- data.frame()
   a <- ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
@@ -102,6 +121,36 @@ PlotFantonFunction <- function(gene="HAPLN3") {
   }#end if
       
        return(list(a,b))      
+}
+
+PlotFantonFunction <- function(gene="HAPLN3") { 
+  if(!exists("MeanCluster_Fantom_t")) {
+    load("/app/Shiny/RAExpressionDashboard/Data/MembraneDataAll.RData")
+  }
+  index <- grep(paste0("^", gene,"$"), MeanCluster_Fantom_t$Symbol) 
+  plotData <- data.frame(t(MeanCluster_Fantom_t[index,]))
+  plotData[] <- lapply(plotData, as.character)
+  colnames(plotData) <- (plotData[53,])
+  plotData$Cell <- row.names(plotData)
+  colnames(plotData) <- make.names(colnames(plotData))
+  # plotData$Cell <- (row.names(plotData))
+  #Select column with max expression value
+    Index <- which.max(plotData["Max",-(length(plotData))])
+    plotData <- data.frame(Value = plotData[,Index], Cell=plotData$Cell)
+  colnames(plotData)[1] <- "Value"
+  
+  a <- ggplot(plotData[1:51,], aes(x=Cell, y=as.numeric(Value), fill = Cell))+geom_col()+
+    theme(legend.position="none")+ ggtitle(paste0("Fantom5 Expression Data ", gene))+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1))
+  
+  b <- ggplot(plotData[1:51,],aes(x=reorder(Cell,-as.numeric(Value)),y=as.numeric(Value),label = Cell,fill = Cell))+
+    geom_bar(stat = 'identity')+
+    labs(x='', y = 'Expression', title=paste0("Fantom5 Expression Data ", gene))+
+    theme_bw()+
+    theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  return(list(a,b))      
 }
 
 #Load Data.  run only once when the server.R is called
@@ -209,7 +258,8 @@ plotImmuneProteomics <- function(gene="HAPLN3") {
     rm(gset)  
   }
 
-index <- grep( gene, fData(ImmuneProtgset)$Gene.names.1) 
+#index <- grep( gene, fData(ImmuneProtgset)$Gene.names.1) 
+index <- grep(paste0("^", gene, "$"), fData(ImmuneProtgset)$Gene.names.1) 
 plotData <-(data.frame(exprs(ImmuneProtgset)[index[1],]))
 plotData$Cell <- pData(ImmuneProtgset)$Cell
 plotData$State <- pData(ImmuneProtgset)$State
@@ -229,6 +279,10 @@ PlotLowInputAMP <- function(gene="CDH11"){
   }
   
   PlotData <- exprs(lowinputGSET)[fData(lowinputGSET)$gene_name==gene,]
+    if(nrow(PlotData)>1){
+      maxRow <- which(apply(PlotData,1,max)==max(apply(PlotData,1,max)))
+      PlotData <- PlotData[maxRow,]
+    }
   PlotData_t <-data.frame(Value=PlotData, pData(lowinputGSET))
   a <-  ggplot(PlotData_t,aes(x=DiseaseTissue,y=Value,label = DiseaseTissue,fill = DiseaseTissue)) + 
     geom_bar(stat = "summary", fun.y = "median", width=0.8)+
@@ -395,7 +449,7 @@ PlotBrennerFibro <- function(gene="CDH11"){
   return(a)
 } 
 
-ggplot(PlotData_t, aes(x=FABGroup, y=donor))+geom_jitter(height=0.2, width=0.2)
+#ggplot(PlotData_t, aes(x=FABGroup, y=donor))+geom_jitter(height=0.2, width=0.2)
 
 #Brenner Fibriblast-Micro
 PlotBrennerFibroMicro <- function(gene="CDH11"){
@@ -440,8 +494,9 @@ PlotBrennerFibroMicro <- function(gene="CDH11"){
 PlotSSRA <- function(gene="CDH11"){
   if(!exists("SSRA")) {
     load("~/projects/CDH11_membrance/CDH11/Data/BrennerFib.RData")
-    
-    fData(SSRA)$gene_name <- fData(SSRA)$gene.name
+    SSRA <- gset_RNAseq
+    #fData(SSRA)$gene_name <- fData(SSRA)$gene.name
+    fData(SSRA)$gene_name <- fData(SSRA)$external_gene_name
   }
   gene <- as.character(gene)
   
@@ -491,6 +546,8 @@ PlotSSRA <- function(gene="CDH11"){
 
 #Fibroblast signature
 PlotFIBData <- function(gene="CDH11"){
+  library(Biobase)
+  require(ggplot2)
   if(!exists("fibrgset")) {
     load("~/app/RAExpressionDashboard/Data/Fibroblastgset.RData")
     fData(fibrgset)$gene_name <- fData(fibrgset)$SYMBOL
@@ -540,6 +597,8 @@ PlotPeak <- function(gene="CDH11"){
     rm(gset, gsetMax, cont.wt1)
   }
   PlotData <- exprs(PEAKgset)[fData(PEAKgset)$gene_name==gene,]
+  #if mutliple rows return select highest value
+  PlotData <- PlotData[which.max(apply(PlotData,1,max)),]
   PlotData_t <-data.frame(Value=PlotData, pData(PEAKgset))
   
   my_comparisons <- list( c("fibroid" , "lymphoid")
@@ -836,8 +895,11 @@ PlotGSE24742 <- function(gene="CDH11"){
   
   PlotData <- data.frame(Value=exprs(GSE24742gset )[fData(GSE24742gset)$SYMBOL==gene,])
   PlotData <- PlotData[!is.na(row.names(PlotData)),]
+
   PlotData <- PlotData[!is.na(PlotData[,1]),]
-  PlotData <- PlotData[is.numeric(PlotData[,1]),]
+  if(dim(PlotData)[1]!=0){
+    PlotData <- PlotData[is.numeric(PlotData[,1]),]
+  }
   if(dim(PlotData)[1]==0){PlotData=data.frame(Value=rep(0,ncol(PlotData)))}
   
   #PlotData <- PlotData[!is.na(row.names(PlotData)),]
@@ -850,7 +912,8 @@ PlotGSE24742 <- function(gene="CDH11"){
   
   my_comparisons <- list( c("baseline", "12 weeks of RTX therapy"))
   maxval <- max(PlotData_t$Value)
-  a <- ggplot(PlotData_t,aes(x=Response,y=Value,label = Group,fill = Group)) +
+  PlotData_t$Group <- factor(PlotData_t$Group, levels=c("baseline", "12 weeks of RTX therapy"))
+  a <- ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
     geom_boxplot(outlier.shape = NA)+
     geom_point(position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
                                              dodge.width = 0.75, seed = NA))+
@@ -861,8 +924,27 @@ PlotGSE24742 <- function(gene="CDH11"){
     theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
   # Visualize: Specify the comparisons you want
-  a <- a + stat_compare_means(aes(group=Response), label = "p.format")+ # Add pairwise comparisons p-value
-    stat_compare_means(label.y = maxval+1)     # Add global p-value
+  
+  # New facet label names for dose variable
+  dose.labs <-c("GoodResp", "Moderate_Resp", "Poor_Resp") 
+  names(dose.labs) <- unique(PlotData_t$Response)
+  
+
+  a <- a + facet_wrap(~Response, nrow = 1, strip.position="bottom", labeller = labeller(Response = dose.labs))+
+    theme(strip.text.x = element_text(angle=0))+stat_compare_means(aes(group=Group))+
+    theme(axis.text.x=element_blank())+  theme(
+      #aspect.ratio = 41,
+      strip.text = element_text(hjust = .5, angle=0, size=16),
+      strip.background = element_blank(),
+      strip.placement = "outside")
+  
+  a <- a+ scale_fill_manual(name="Treatment",
+                            labels=c( "baseline", "12 Wk RTX"),
+                            values=c("#F8766D", "#00BFC4"))
+  
+
+  # a <- a + stat_compare_means(aes(group=Response), label = "p.format")+ # Add pairwise comparisons p-value
+  #   stat_compare_means(label.y = maxval+1)     # Add global p-value
   
   return(a)
   
@@ -1009,4 +1091,182 @@ PlotGSE116899 <- function(gene="CDH11"){
   
   return(a)
   
+}
+
+#gsetGSE153015 (OA vs RA)
+#mean-centered log2-transformed expression values.
+PlotGSE153015 <- function(gene="CDH11"){
+  require(ggplot2)
+  require(ggpubr)
+  if(!exists("GSE153015gset")) {
+    load("Data/GSE153015.rdata")
+    #GSE116899gset <- gset 
+  }
+  gene <- as.character(gene)
+  fData(gsetGSE153015)$SYMBOL <- fData(gsetGSE153015)$Gene.symbol
+  fData(gsetGSE153015)$SYMBOL <- as.character(fData(gsetGSE153015)$SYMBOL)
+  PlotData <- exprs(gsetGSE153015)[fData(gsetGSE153015)$SYMBOL==gene,]
+    PlotData <- PlotData[(!is.na(PlotData[,1])),]
+      if(nrow(PlotData)>1){PlotData <- PlotData[which(apply(PlotData, 1, mean)==max(apply(PlotData, 1, mean))),]}
+  # if(class(PlotData)!="numeric"){
+  #   PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  #   maxTable <- apply(PlotData, 1, max)
+  #   maxTableIndex <- which(maxTable==max(maxTable))
+  #   PlotData <- PlotData[maxTableIndex,]
+  # }
+  
+  #PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  PlotData_t <-data.frame(Value=PlotData, pData(gsetGSE153015))
+  #PlotData_t$title <- as.character(PlotData_t$title)
+  PlotData_t$Group = paste(PlotData_t$joint.size.ch1, PlotData_t$diagnosis.ch1, sep = "_")
+  #PlotData_t <- PlotData_t[!PlotData_t$Group %in% c("Biopsy02", "OtherBiopsy01", "OtherBiopsy02", "NANA"),]
+  #PlotData_t$Group <- factor(PlotData_t$Group, levels=c("Rheumatoid.arthritis", "Seronegative.arthritis", "Osteoarthritis", 
+  # 
+  PlotData_t$Group <- gsub("osteoarthritis", "OA", PlotData_t$Group )
+  PlotData_t$Group <- gsub("rheumatoid arthritis \\(RA\\)", "RA", PlotData_t$Group )
+  
+  PlotData_t$Subject <- c(rep(1:10,each=2), 11:14)
+  my_comparisons <- list( c("large joint_OA", "small joint_RA"),
+                          c("large joint_OA", "large joint_RA"))
+  
+  maxval <- max(PlotData_t$Value)
+  a <-  ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
+    geom_boxplot(outlier.shape = NA)+
+    geom_point( aes(color=Subject),pch=21, colour="black",   position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
+                                              dodge.width = 0.75, seed = NA))+
+    #geom_point(aes(shape=Donor), position=position_dodge(width=.75))+
+    labs(x='', y = 'Expression', title=paste0("GSE153015 paired samples ",gene))+
+    theme_bw()+
+    theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  # Visualize: Specify the comparisons you want
+  a <- a + stat_compare_means(comparisons = my_comparisons)+ # Add pairwise comparisons p-value
+    stat_compare_means(label.y = maxval+2)     # Add global p-value
+  a  + scale_color_gradientn(colours = rainbow(14))
+  
+  return(a)
+  
+}
+
+#gsetGSE47726 (TNF non vs Responder)
+#mean-centered log2-transformed expression values.
+PlotGSE47726 <- function(gene="CDH11"){
+  require(ggplot2)
+  require(ggpubr)
+  if(!exists("gsetGSE47726")) {
+    load("Data/GSE47726.Rdata")
+    #GSE116899gset <- gset 
+  }
+  gene <- as.character(gene)
+  #fData(gsetGSE47726)$SYMBOL <- fData(gsetGSE47726))$Gene.symbol
+  #fData(gsetGSE47726)$SYMBOL <- as.character(gsetGSE47726)$SYMBOL
+  PlotData <- exprs(gsetGSE47726)[fData(gsetGSE47726)$SYMBOL==gene,]
+  PlotData <- PlotData[(!is.na(PlotData[,1])),]
+ # if(nrow(PlotData)>1){PlotData <- PlotData[which(apply(PlotData, 1, mean)==max(apply(PlotData, 1, mean))),]}
+  # if(class(PlotData)!="numeric"){
+  #   PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  #   maxTable <- apply(PlotData, 1, max)
+  #   maxTableIndex <- which(maxTable==max(maxTable))
+  #   PlotData <- PlotData[maxTableIndex,]
+  # }
+  
+  #PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  PlotData_t <-data.frame(Value=PlotData, pData(gsetGSE47726))
+  #PlotData_t$title <- as.character(PlotData_t$title)
+  PlotData_t$Group = PlotData_t$group
+  #PlotData_t <- PlotData_t[!PlotData_t$Group %in% c("Biopsy02", "OtherBiopsy01", "OtherBiopsy02", "NANA"),]
+  #PlotData_t$Group <- factor(PlotData_t$Group, levels=c("Rheumatoid.arthritis", "Seronegative.arthritis", "Osteoarthritis", 
+  # 
+
+  my_comparisons <- list( c("Non", "Res"))
+  
+  maxval <- max(PlotData_t$Value)
+  a <-  ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
+    geom_boxplot(outlier.shape = NA)+
+    geom_point( aes(color=Subject),pch=21, colour="black",   position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
+                                                                                           dodge.width = 0.75, seed = NA))+
+    #geom_point(aes(shape=Donor), position=position_dodge(width=.75))+
+    labs(x='', y = 'Expression', title=paste0("GSE47726 TNF Responders",gene))+
+    theme_bw()+
+    theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  # Visualize: Specify the comparisons you want
+  a <- a + stat_compare_means(comparisons = my_comparisons)+ # Add pairwise comparisons p-value
+    stat_compare_means(label.y = maxval+2)     # Add global p-value
+  a  + scale_color_gradientn(colours = rainbow(14))
+  
+  return(a)
+  
+}
+
+PlotGSE74143 <- function(gene="CDH11"){
+  require(ggplot2)
+  require(ggpubr)
+  if(!exists("gsetGSE74143")) {
+    load("Data/GSE74143.Rdata")
+    #GSE116899gset <- gset 
+  }
+  gene <- as.character(gene)
+  fData(gsetGSE74143)$SYMBOL <- fData(gsetGSE74143)$Gene.symbol
+  #fData(gsetGSE47726)$SYMBOL <- as.character(gsetGSE47726)$SYMBOL
+  PlotData <- exprs(gsetGSE74143)[fData(gsetGSE74143)$SYMBOL==gene,]
+  PlotData <- PlotData[(!is.na(PlotData[,1])),]
+    if (fData(gsetGSE74143)$SYMBOL==gene)
+   if(nrow(PlotData)>1){PlotData <- PlotData[which(apply(PlotData, 1, mean)==max(apply(PlotData, 1, mean))),]}
+  # if(class(PlotData)!="numeric"){
+  #   PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  #   maxTable <- apply(PlotData, 1, max)
+  #   maxTableIndex <- which(maxTable==max(maxTable))
+  #   PlotData <- PlotData[maxTableIndex,]
+  # }
+  
+  #PlotData <- PlotData[!is.na(row.names(PlotData)),]
+  PlotData_t <-data.frame(Value=PlotData, pData(gsetGSE74143))
+  #PlotData_t$title <- as.character(PlotData_t$title)
+  PlotData_t$Group = PlotData_t$group
+  #PlotData_t <- PlotData_t[!PlotData_t$Group %in% c("Biopsy02", "OtherBiopsy01", "OtherBiopsy02", "NANA"),]
+  #PlotData_t$Group <- factor(PlotData_t$Group, levels=c("Rheumatoid.arthritis", "Seronegative.arthritis", "Osteoarthritis", 
+  # 
+  
+  my_comparisons <- list( c("Neg", "Pos"))
+  
+  maxval <- max(PlotData_t$Value)
+  a <-  ggplot(PlotData_t,aes(x=Group,y=Value,label = Group,fill = Group)) +
+    geom_boxplot(outlier.shape = NA)+
+    geom_point( aes(color=Subject),pch=21, colour="black",   position=position_jitterdodge(jitter.width = 0.25, jitter.height = 0,
+                                                                                           dodge.width = 0.75, seed = NA))+
+    #geom_point(aes(shape=Donor), position=position_dodge(width=.75))+
+    labs(x='', y = 'Expression', title=paste0("GSE74143 RF pos/neg",gene))+
+    theme_bw()+
+    theme(legend.position="none")+
+    theme(plot.title = element_text(hjust = 0.5,size = 20),axis.title = element_text(size=15))+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = textsize),panel.grid.major= element_blank(), panel.grid.minor = element_blank())
+  # Visualize: Specify the comparisons you want
+  a <- a + stat_compare_means(comparisons = my_comparisons)+ # Add pairwise comparisons p-value
+    stat_compare_means(label.y = maxval+1)     # Add global p-value
+  a  + scale_color_gradientn(colours = rainbow(14))
+  
+  return(a)
+  
+}
+
+
+#Singel Cell from HPA
+SingleCelllot <- function(gene ="MET"){
+  require(dplyr)
+  require(ggplot2)
+  require(cowplot)
+  if(!exists("SingleDF")){
+    SingleDF <- read.table("/app/Shiny/RAExpressionDashboard/Data/rna_single_cell_type.tsv", header = T, sep="\t", stringsAsFactors = F )
+    SingleMeta <- read.table("/app/Shiny/RAExpressionDashboard/Data/SingleCellMeta.txt",  header = T, sep="\t", stringsAsFactors = F)
+  }
+  SingleDF1 <- filter(SingleDF, Gene.name == UQ(gene))
+  SingleDF1 <- merge(SingleDF1, SingleMeta, by.x="Cell.type", by.y="Cell.type")
+  SingleDF1$Cell.type <- factor(SingleDF1$Cell.type , levels=(SingleDF1$Cell.type[order(SingleDF1$Cell.type.group)]))
+  p <- ggplot(SingleDF1, aes(x=Cell.type, y=NX, fill=Cell.type.group))+geom_bar(stat = "identity")+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ggtitle(gene)
+  p
+  return(p)
 }

@@ -5,9 +5,9 @@ Annotation = data.frame(Sample = colnames(DF)[7:36])
 
 Annotation$Donor = Annotation$Sample
   Annotation$Donor <- gsub("X|VDBR|b|sf", "", gsub("_C2CUGACXX_[AGCT]*_L00[12].accepted_hits.bam", "", Annotation$Donor))
-  Annotation$Tissue <- gsub("X|VDBR|[0-9]+", "", gsub("_C2CUGACXX_[AGCT]*_L00[12].accepted_hits.bam", "", Annotation$Tissue))
-  Annotation$Tissue <- gsub("b", "Blood", Annotation$Tissue)
-  Annotation$Tissue <- gsub("sf", "SynovialFluid", Annotation$Tissue)
+  # Annotation$Tissue <- gsub("X|VDBR|[0-9]+", "", gsub("_C2CUGACXX_[AGCT]*_L00[12].accepted_hits.bam", "", Annotation$Tissue))
+  # Annotation$Tissue <- gsub("b", "Blood", Annotation$Tissue)
+  # Annotation$Tissue <- gsub("sf", "SynovialFluid", Annotation$Tissue)
   
   ##################
   #Create Expression set
@@ -31,7 +31,7 @@ Annotation$Donor = Annotation$Sample
   table(row.names(pData(gset)) == colnames(exprs(gset)))
 
 
-  Ann <-   read.table("GeneSymbol.txt", sep="\t", header=T)
+  Ann <-   read.table("/app/Shiny/RAExpressionDashboard/Data/GeneSymbol.txt", sep="\t", header=T)
   names(Ann) <- c("Geneid", "Gene.name")
   library(plyr)
   jj <- join(fData(gset)[,c(1,6,7)], Ann, by="Geneid")
